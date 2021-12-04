@@ -15,12 +15,23 @@ pub async fn download_file(client: &Client, url: &str, dest: &str) -> Result<(),
     let response = client.get(url).send().await?;
     let filename = get_url_basename(url).unwrap();
 
-    let total_bytes = response.content_length().unwrap();
+    let total_bytes = match response.content_length() {
+        Some(tb) => tb,
+        None => 0,
+    };
+
     // let pb = mb.add(ProgressBar::new(total_bytes));
     let pb = ProgressBar::new(total_bytes);
-    pb.set_style(ProgressStyle::default_bar()
-                 .template("{msg} [{bar}] [{elapsed_precise}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
-                 .progress_chars("# -"));
+
+    if total_bytes == 0 {
+        pb.set_style(ProgressStyle::default_spinner()
+                     .template("{msg} [{spinner}] [{elapsed_precise}] {bytes_per_sec}"));
+    } else {
+        pb.set_style(ProgressStyle::default_bar()
+                     .template("{msg} [{bar}] [{elapsed_precise}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
+                     .progress_chars("# -"));
+    }
+
     pb.set_message(format!("Downloading: {}", filename));
 
     let mut file = match File::create(filename) {
@@ -35,8 +46,12 @@ pub async fn download_file(client: &Client, url: &str, dest: &str) -> Result<(),
     while let Some(slice) = stream.next().await {
         let chunk = slice?;
         file.write(&chunk)?;
-        downloaded_bytes = min(downloaded_bytes + (chunk.len() as u64), total_bytes);
-        pb.set_position(downloaded_bytes);
+        if total_bytes == 0 {
+            pb.inc(chunk.len() as u64);
+        } else {
+            downloaded_bytes = min(downloaded_bytes + (chunk.len() as u64), total_bytes);
+            pb.set_position(downloaded_bytes);
+        }
     };
 
     pb.finish_with_message(format!("Done"));
