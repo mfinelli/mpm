@@ -20,6 +20,13 @@ version = "0.16.2"
 version = "0.11.7"
 features = ["stream"]
 
+[dependencies.serde]
+version = "1.0.130"
+features = ["derive"]
+
+[dependencies.serde_yaml]
+version = "0.8.21"
+
 [dependencies.tokio]
 version = "1.14.0"
 features = ["full"]
