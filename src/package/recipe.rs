@@ -1,4 +1,6 @@
 use std::fs::File;
+use std::os::unix::fs;
+use std::path::Path;
 
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -66,13 +68,13 @@ impl PackageRecipe {
         if let Some(sources) = &self.sources {
             for source in sources.iter() {
                 // TODO: error handling
-                let dl = downloader::download_file(client, source.url.as_str(), ".").await;
+                let dl = downloader::download_file(client, source.url.as_str(), ".", false).await;
             }
         }
     }
 
-    pub fn verify_sources(self) -> Result<(), Box<dyn std::error::Error>> {
-        if let Some(sources) = self.sources {
+    pub fn verify_sources(&self) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(sources) = &self.sources {
             for source in sources.iter() {
                 match &source.sha256sum {
                     Some(hash) => {
@@ -91,6 +93,22 @@ impl PackageRecipe {
         }
 
         // TODO: add support for pgp signatures
+
+        Ok(())
+    }
+
+    pub fn symlink_sources(&self, dest: &str) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(sources) = &self.sources {
+            for source in sources.iter() {
+                let filename = downloader::get_url_basename(&source.url).unwrap();
+
+                fs::symlink(
+                    std::fs::canonicalize(&filename).unwrap(),
+                    Path::new(dest).join(&filename),
+                )
+                .unwrap();
+            }
+        }
 
         Ok(())
     }

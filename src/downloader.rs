@@ -1,16 +1,14 @@
-use std::path::Path;
-
-use url::Url;
-
 use std::cmp::min;
 use std::fs::File;
-use std::io::{Cursor, Write};
+use std::io::Write;
+use std::path::Path;
 
 use futures_util::StreamExt;
 use hex;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 use sha2::{Digest, Sha256};
+use url::Url;
 
 pub async fn download_file(
     client: &Client,
@@ -18,8 +16,13 @@ pub async fn download_file(
     dest: &str,
     overwrite: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let response = client.get(url).send().await?;
     let filename = get_url_basename(url).unwrap();
+
+    if Path::new(&filename).exists() && !overwrite {
+        return Ok(());
+    }
+
+    let response = client.get(url).send().await?;
 
     let total_bytes = match response.content_length() {
         Some(tb) => tb,
@@ -41,6 +44,7 @@ pub async fn download_file(
 
     pb.set_message(format!("Downloading: {}", filename));
 
+    // TODO: handle destination correctly
     let mut file = match File::create(filename) {
         Ok(f) => f,
         Err(err) => return Err(Box::new(err)),
