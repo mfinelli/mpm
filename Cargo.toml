@@ -10,6 +10,9 @@ version = "3.0.0-beta.5"
 default-features = false
 features = ["std", "suggestions", "unicode"]
 
+[dependencies.compress-tools]
+version = "0.12.2"
+
 [dependencies.futures-util]
 version = "0.3.18"
 

@@ -112,6 +112,19 @@ impl PackageRecipe {
 
         Ok(())
     }
+
+    pub fn extract_sources(&self, dest: &str) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(sources) = &self.sources {
+            for source in sources.iter() {
+                let filename = downloader::get_url_basename(&source.url).unwrap();
+                let mut source = File::open(Path::new(dest).join(&filename)).unwrap();
+                // ? is ok here, because we want to "fail" silently on non-archive formats
+                compress_tools::uncompress_archive(&mut source, Path::new(dest), compress_tools::Ownership::Ignore)?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl PackageRecipeSource {

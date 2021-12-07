@@ -51,7 +51,10 @@ pub async fn run(cli: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         Ok(_) => (),
         Err(err) => return Err(err),
     }
-    // TODO: extract source archives
+    match recipe.extract_sources(SRCDIR_BASE) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
+    }
 
     Ok(())
 }
