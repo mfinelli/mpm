@@ -62,13 +62,36 @@ impl PackageRecipe {
         }
     }
 
-    pub async fn download_sources(self, client: &Client) {
-        if let Some(sources) = self.sources {
+    pub async fn download_sources(&self, client: &Client) {
+        if let Some(sources) = &self.sources {
             for source in sources.iter() {
                 // TODO: error handling
                 let dl = downloader::download_file(client, source.url.as_str(), ".").await;
             }
         }
+    }
+
+    pub fn verify_sources(self) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(sources) = self.sources {
+            for source in sources.iter() {
+                match &source.sha256sum {
+                    Some(hash) => {
+                        if downloader::file_sha256sum_matches(
+                            &downloader::get_url_basename(&source.url).unwrap(),
+                            &hash) {
+                            continue;
+                        } else {
+                            return Err("hash doesn't match")?
+                        }
+                    },
+                    None => continue,
+                }
+            }
+        }
+
+        // TODO: add support for pgp signatures
+
+        Ok(())
     }
 }
 

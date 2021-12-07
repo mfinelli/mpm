@@ -2,7 +2,6 @@ use std::fs;
 use std::path::Path;
 
 use clap::ArgMatches;
-use indicatif::MultiProgress;
 use reqwest::Client;
 
 pub mod recipe;
@@ -25,7 +24,10 @@ pub async fn run(cli: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::builder().build().unwrap();
     // TODO: skip download if source already exists
     recipe.download_sources(&client).await;
-    // TODO: check integrity
+    match recipe.verify_sources() {
+        Ok(_) => (),
+        Err(err) => return Err(err),
+    }
 
     // cleanup any existing packaging artifacts
     let packaging_dirs = [SRCDIR_BASE, PKGDIR_BASE];

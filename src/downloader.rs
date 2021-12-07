@@ -6,11 +6,12 @@ use std::cmp::min;
 use std::io::{Cursor, Write};
 use std::fs::File;
 
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use hex;
+use indicatif::{ProgressBar, ProgressStyle};
 use futures_util::StreamExt;
 use reqwest::Client;
+use sha2::{Digest, Sha256};
 
-// pub async fn download_file(client: &Client, mb: &MultiProgress, url: &str, dest: &str) -> Result<(), Box<dyn std::error::Error>> {
 pub async fn download_file(client: &Client, url: &str, dest: &str) -> Result<(), Box<dyn std::error::Error>> {
     let response = client.get(url).send().await?;
     let filename = get_url_basename(url).unwrap();
@@ -20,7 +21,6 @@ pub async fn download_file(client: &Client, url: &str, dest: &str) -> Result<(),
         None => 0,
     };
 
-    // let pb = mb.add(ProgressBar::new(total_bytes));
     let pb = ProgressBar::new(total_bytes);
 
     if total_bytes == 0 {
@@ -40,7 +40,6 @@ pub async fn download_file(client: &Client, url: &str, dest: &str) -> Result<(),
     };
 
     let mut downloaded_bytes: u64 = 0;
-
     let mut stream = response.bytes_stream();
 
     while let Some(slice) = stream.next().await {
@@ -57,15 +56,17 @@ pub async fn download_file(client: &Client, url: &str, dest: &str) -> Result<(),
     pb.finish_with_message(format!("Done"));
 
     Ok(())
+}
 
-     // match client.get(&url).send() {
-     //     Ok(response) => {
+pub fn file_sha256sum_matches(path: &str, expected: &str) -> bool {
+    let mut file =  File::open(path).unwrap();
+    let mut sum = Sha256::new();
+    std::io::copy(&mut file, &mut sum).unwrap();
+    let result = sum.finalize();
+    hex::encode(result) == expected
+}
 
-
- }
-
-
-fn get_url_basename(url: &str) -> Result<String, Box<dyn std::error::Error>> {
+pub fn get_url_basename(url: &str) -> Result<String, Box<dyn std::error::Error>> {
     match Url::parse(url) {
         Ok(parsed_url) => {
             match Path::new(parsed_url.path()).file_name() {
@@ -87,5 +88,14 @@ mod tests {
             get_url_basename("https://example.com/dir/file.tar.gz").unwrap(),
             "file.tar.gz"
         );
+    }
+
+    #[test]
+    fn test_known_hash() {
+        assert_eq!(
+            file_sha256sum_matches(
+                "tests/fixtures/src.tar.gz",
+                "b6492e004ca58d23bb38e9ea50dab9698edb49b759777143a9105fca58597125"),
+            true);
     }
 }
