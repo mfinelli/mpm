@@ -78,12 +78,13 @@ impl PackageRecipe {
                     Some(hash) => {
                         if downloader::file_sha256sum_matches(
                             &downloader::get_url_basename(&source.url).unwrap(),
-                            &hash) {
+                            &hash,
+                        ) {
                             continue;
                         } else {
-                            return Err("hash doesn't match")?
+                            return Err("hash doesn't match")?;
                         }
-                    },
+                    }
                     None => continue,
                 }
             }

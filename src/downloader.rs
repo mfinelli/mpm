@@ -3,16 +3,21 @@ use std::path::Path;
 use url::Url;
 
 use std::cmp::min;
-use std::io::{Cursor, Write};
 use std::fs::File;
+use std::io::{Cursor, Write};
 
+use futures_util::StreamExt;
 use hex;
 use indicatif::{ProgressBar, ProgressStyle};
-use futures_util::StreamExt;
 use reqwest::Client;
 use sha2::{Digest, Sha256};
 
-pub async fn download_file(client: &Client, url: &str, dest: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn download_file(
+    client: &Client,
+    url: &str,
+    dest: &str,
+    overwrite: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let response = client.get(url).send().await?;
     let filename = get_url_basename(url).unwrap();
 
@@ -24,8 +29,10 @@ pub async fn download_file(client: &Client, url: &str, dest: &str) -> Result<(),
     let pb = ProgressBar::new(total_bytes);
 
     if total_bytes == 0 {
-        pb.set_style(ProgressStyle::default_spinner()
-                     .template("{msg} [{spinner}] [{elapsed_precise}] {bytes_per_sec}"));
+        pb.set_style(
+            ProgressStyle::default_spinner()
+                .template("{msg} [{spinner}] [{elapsed_precise}] {bytes_per_sec}"),
+        );
     } else {
         pb.set_style(ProgressStyle::default_bar()
                      .template("{msg} [{bar}] [{elapsed_precise}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
@@ -51,7 +58,7 @@ pub async fn download_file(client: &Client, url: &str, dest: &str) -> Result<(),
             downloaded_bytes = min(downloaded_bytes + (chunk.len() as u64), total_bytes);
             pb.set_position(downloaded_bytes);
         }
-    };
+    }
 
     pb.finish_with_message(format!("Done"));
 
@@ -59,7 +66,7 @@ pub async fn download_file(client: &Client, url: &str, dest: &str) -> Result<(),
 }
 
 pub fn file_sha256sum_matches(path: &str, expected: &str) -> bool {
-    let mut file =  File::open(path).unwrap();
+    let mut file = File::open(path).unwrap();
     let mut sum = Sha256::new();
     std::io::copy(&mut file, &mut sum).unwrap();
     let result = sum.finalize();
@@ -68,11 +75,9 @@ pub fn file_sha256sum_matches(path: &str, expected: &str) -> bool {
 
 pub fn get_url_basename(url: &str) -> Result<String, Box<dyn std::error::Error>> {
     match Url::parse(url) {
-        Ok(parsed_url) => {
-            match Path::new(parsed_url.path()).file_name() {
-                Some(basename) => Ok(basename.to_os_string().into_string().unwrap()),
-                None => return Err("unable to parse filename from url")?,
-            }
+        Ok(parsed_url) => match Path::new(parsed_url.path()).file_name() {
+            Some(basename) => Ok(basename.to_os_string().into_string().unwrap()),
+            None => return Err("unable to parse filename from url")?,
         },
         Err(err) => return Err(format!("{}", err))?,
     }
@@ -95,7 +100,9 @@ mod tests {
         assert_eq!(
             file_sha256sum_matches(
                 "tests/fixtures/src.tar.gz",
-                "b6492e004ca58d23bb38e9ea50dab9698edb49b759777143a9105fca58597125"),
-            true);
+                "b6492e004ca58d23bb38e9ea50dab9698edb49b759777143a9105fca58597125"
+            ),
+            true
+        );
     }
 }

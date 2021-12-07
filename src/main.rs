@@ -7,44 +7,42 @@ mod upgrade;
 mod downloader;
 
 async fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let version = format!("{}.{}.{}{}",
-                     env!("CARGO_PKG_VERSION_MAJOR"),
-                     env!("CARGO_PKG_VERSION_MINOR"),
-                     env!("CARGO_PKG_VERSION_PATCH"),
-                     option_env!("CARGO_PKG_VERSION_PRE").unwrap_or(""));
+    let version = format!(
+        "{}.{}.{}{}",
+        env!("CARGO_PKG_VERSION_MAJOR"),
+        env!("CARGO_PKG_VERSION_MINOR"),
+        env!("CARGO_PKG_VERSION_PATCH"),
+        option_env!("CARGO_PKG_VERSION_PRE").unwrap_or("")
+    );
 
     let cli = App::new("mpm")
         .version(version.as_str())
         .author("Mario Finelli <mario@finel.li>")
         .about("mario's package manager")
         .setting(AppSettings::ArgRequiredElseHelp)
+        .subcommand(App::new("install").about("install a package"))
         .subcommand(
-            App::new("install")
-                .about("install a package")
-        )
-        .subcommand(
-            App::new("package")
-                .about("build a package")
-                .arg(Arg::new("recipe")
-                     .short('r')
-                     .long("recipe")
-                     .about(concat!(
-                             "Specify a custom recipe file ",
-                             "(defaults to pkgrecipe.yml)"
-                     ))
-                     .required(false)
-                     .multiple_occurrences(false)
-                     .multiple_values(false)
-                     .forbid_empty_values(true)
-                     .takes_value(true)
-                     .value_name("FILE")
-                     .default_value("pkgrecipe.yaml")
-                )
+            App::new("package").about("build a package").arg(
+                Arg::new("recipe")
+                    .short('r')
+                    .long("recipe")
+                    .about(concat!(
+                        "Specify a custom recipe file ",
+                        "(defaults to pkgrecipe.yml)"
+                    ))
+                    .required(false)
+                    .multiple_occurrences(false)
+                    .multiple_values(false)
+                    .forbid_empty_values(true)
+                    .takes_value(true)
+                    .value_name("FILE")
+                    .default_value("pkgrecipe.yaml"),
+            ),
         )
         .subcommand(
             App::new("upgrade")
                 .aliases(&["up", ""])
-                .about("upgrade all installed packages")
+                .about("upgrade all installed packages"),
         )
         .get_matches();
 
