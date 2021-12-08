@@ -10,8 +10,8 @@ use super::downloader;
 
 #[derive(Debug, Deserialize)]
 pub struct PackageRecipe {
-    name: String,
-    version: String,
+    pub name: String,
+    pub version: String,
     epoch: Option<u32>,
     release: u32,
     description: String,
@@ -22,8 +22,8 @@ pub struct PackageRecipe {
     makedepends: Option<Vec<String>>,
     checkdepends: Option<Vec<String>>,
     sources: Option<Vec<PackageRecipeSource>>,
-    prepare: Option<String>,
-    build: Option<String>,
+    pub prepare: Option<String>,
+    pub build: Option<String>,
     check: Option<String>,
     packages: Option<Vec<PackageRecipePackage>>,
 }
@@ -50,6 +50,14 @@ impl PackageRecipe {
 
         // println!("{:#?}", data);
         Ok(data)
+    }
+
+    pub fn package_basename(&self) -> String {
+        if let Some(epoch) = self.epoch {
+            format!("{}-{}:{}-{}", self.name, epoch, self.version, self.release)
+        } else {
+            format!("{}-{}-{}", self.name, self.version, self.release)
+        }
     }
 
     fn variable_substitution(&mut self) {
@@ -119,7 +127,11 @@ impl PackageRecipe {
                 let filename = downloader::get_url_basename(&source.url).unwrap();
                 let mut source = File::open(Path::new(dest).join(&filename)).unwrap();
                 // ? is ok here, because we want to "fail" silently on non-archive formats
-                compress_tools::uncompress_archive(&mut source, Path::new(dest), compress_tools::Ownership::Ignore)?;
+                compress_tools::uncompress_archive(
+                    &mut source,
+                    Path::new(dest),
+                    compress_tools::Ownership::Ignore,
+                )?;
             }
         }
 
@@ -131,5 +143,56 @@ impl PackageRecipeSource {
     fn variable_substitution(&mut self, find: &str, replace: &str) {
         let search = format!("${{{}}}", find);
         self.url = str::replace(&self.url, search.as_str(), replace);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_basename_with_epoch() {
+        let recipe = PackageRecipe {
+            name: String::from("testpkg"),
+            version: String::from("1.2.3"),
+            epoch: Some(1),
+            release: 4,
+            description: String::from("test"),
+            url: None,
+            arch: None,
+            license: None,
+            depends: None,
+            makedepends: None,
+            checkdepends: None,
+            sources: None,
+            prepare: None,
+            build: None,
+            check: None,
+            packages: None,
+        };
+        assert_eq!(recipe.package_basename(), "testpkg-1:1.2.3-4");
+    }
+
+    #[test]
+    fn test_basename_without_epoch() {
+        let recipe = PackageRecipe {
+            name: String::from("testpkg"),
+            version: String::from("1.2.3"),
+            epoch: None,
+            release: 4,
+            description: String::from("test"),
+            url: None,
+            arch: None,
+            license: None,
+            depends: None,
+            makedepends: None,
+            checkdepends: None,
+            sources: None,
+            prepare: None,
+            build: None,
+            check: None,
+            packages: None,
+        };
+        assert_eq!(recipe.package_basename(), "testpkg-1.2.3-4");
     }
 }

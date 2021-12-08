@@ -1,9 +1,11 @@
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
 use clap::ArgMatches;
 use reqwest::Client;
 
+pub mod bash;
 pub mod recipe;
 
 use super::downloader;
@@ -54,6 +56,24 @@ pub async fn run(cli: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     match recipe.extract_sources(SRCDIR_BASE) {
         Ok(_) => (),
         Err(err) => return Err(err),
+    }
+
+    let mut vars = HashMap::new();
+    vars.insert("pkgname", &recipe.name);
+    vars.insert("pkgver", &recipe.version);
+
+    if let Some(prepare) = recipe.prepare {
+        let status = bash::run_script(SRCDIR_BASE, &prepare, &vars);
+        if ! status {
+            return Err("prepare failed")?;
+        }
+    }
+
+    if let Some(build) = recipe.build {
+        let status = bash::run_script(SRCDIR_BASE, &build, &vars);
+        if ! status {
+            return Err("build failed")?;
+        }
     }
 
     Ok(())
