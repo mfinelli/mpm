@@ -53,25 +53,38 @@ pub async fn run(cli: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         Ok(_) => (),
         Err(err) => return Err(err),
     }
-    match recipe.extract_sources(SRCDIR_BASE) {
-        Ok(_) => (),
+
+    let extracted_sources = match recipe.extract_sources(SRCDIR_BASE) {
+        Ok(sources) => sources,
         Err(err) => return Err(err),
-    }
+    };
 
     let mut vars = HashMap::new();
     vars.insert("pkgname", &recipe.name);
     vars.insert("pkgver", &recipe.version);
 
-    if let Some(prepare) = recipe.prepare {
+    if let Some(ref source) = recipe.source {
+        let status = bash::run_script(SRCDIR_BASE, &source, &vars);
+        if !status {
+            return Err("source failed")?;
+        }
+    }
+
+    match recipe.create_source_package(SRCDIR_BASE, recipe_file, extracted_sources) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
+    }
+
+    if let Some(ref prepare) = recipe.prepare {
         let status = bash::run_script(SRCDIR_BASE, &prepare, &vars);
-        if ! status {
+        if !status {
             return Err("prepare failed")?;
         }
     }
 
-    if let Some(build) = recipe.build {
+    if let Some(ref build) = recipe.build {
         let status = bash::run_script(SRCDIR_BASE, &build, &vars);
-        if ! status {
+        if !status {
             return Err("build failed")?;
         }
     }

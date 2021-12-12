@@ -35,7 +35,9 @@ mod tests {
         let somevar = String::from("testing");
         let mut vars = HashMap::new();
         vars.insert("somevar", &somevar);
-        assert_eq!(create_script(&script, &vars),
-        "set -ex\n\nsomevar='testing'\n\necho $somevar\n\nexit 0\n");
+        assert_eq!(
+            create_script(&script, &vars),
+            "set -ex\n\nsomevar='testing'\n\necho $somevar\n\nexit 0\n"
+        );
     }
 }
