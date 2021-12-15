@@ -27,8 +27,8 @@ pub struct PackageRecipe {
     pub source: Option<String>,
     pub prepare: Option<String>,
     pub build: Option<String>,
-    check: Option<String>,
-    packages: Option<Vec<PackageRecipePackage>>,
+    pub check: Option<String>,
+    pub packages: Option<Vec<PackageRecipePackage>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -39,7 +39,7 @@ struct PackageRecipeSource {
 }
 
 #[derive(Debug, Deserialize)]
-struct PackageRecipePackage {
+pub struct PackageRecipePackage {
     name: String,
     description: Option<String>,
     package: Option<String>,
@@ -192,7 +192,7 @@ impl PackageRecipe {
         srcdir: &str,
         recipe_file: &str,
         extracted_sources: Vec<String>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<bool, Box<dyn std::error::Error>> {
         let cwd = env::current_dir().unwrap().display().to_string();
         let srcdir = Path::new(&cwd).join(srcdir);
 
@@ -265,11 +265,12 @@ impl PackageRecipe {
             }
         }
 
-        println!("{:?}", &compress);
+        // println!("{:?}", &compress);
         let status = compress.join().unwrap();
-        println!("{:?}", status);
 
-        Ok(())
+        // TODO: remove temporary usr directory
+
+        Ok(status.success())
     }
 }
 
@@ -284,6 +285,22 @@ impl PackageRecipeSource {
             }
             None => (),
         }
+    }
+}
+
+impl PackageRecipePackage {
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn package(&self) -> Option<&String> {
+        self.package.as_ref()
+    }
+
+    pub fn create_package(&self) {
+    }
+
+    pub fn create_debug_package(&self) {
     }
 }
 
