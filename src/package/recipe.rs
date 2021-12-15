@@ -12,8 +12,8 @@ use super::downloader;
 
 #[derive(Debug, Deserialize)]
 pub struct PackageRecipe {
-    pub name: String,
-    pub version: String,
+    name: String,
+    version: String,
     epoch: Option<u32>,
     release: u32,
     description: String,
@@ -55,6 +55,14 @@ impl PackageRecipe {
 
         // println!("{:#?}", data);
         Ok(data)
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn version(&self) -> &String {
+        &self.version
     }
 
     pub fn package_basename(&self) -> String {
