@@ -126,7 +126,7 @@ pub async fn run(cli: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
             }
 
             package.create_debug_package();
-            package.create_package();
+            package.create_package(&recipe, &full_pkgdir);
         }
     }
 

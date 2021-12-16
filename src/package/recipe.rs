@@ -297,7 +297,31 @@ impl PackageRecipePackage {
         self.package.as_ref()
     }
 
-    pub fn create_package(&self) {
+    pub fn create_package(&self, recipe: &PackageRecipe, pkgdir: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut compress = Exec::cmd("fakeroot")
+            .arg("--")
+            .arg("bsdtar")
+            .arg("czf")
+            .arg(format!("{}-{}.pkg.tar.gz", &recipe.package_basename(),
+            "TODO"))
+            .arg("-C")
+            .arg(&pkgdir);
+
+        let mut entries = std::fs::read_dir(&pkgdir)?
+            .map(|res| res.map(|e| e.path()))
+            .collect::<Result<Vec<_>, std::io::Error>>()?;
+        entries.sort();
+
+        for entry in entries.iter() {
+            let entry = entry.strip_prefix(&pkgdir).unwrap().to_str().unwrap();
+            compress = compress.arg(&entry);
+        }
+
+        println!("{:?}", &compress);
+        let status = compress.join().unwrap();
+        println!("{:?}", status);
+
+        Ok(())
     }
 
     pub fn create_debug_package(&self) {
